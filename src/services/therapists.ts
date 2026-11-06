@@ -53,6 +53,22 @@ export async function createTherapist(payload: TherapistFormPayload): Promise<vo
   if (error) throw translateTherapistError(error)
 }
 
+export async function deleteTherapist(id: number): Promise<void> {
+  const { error } = await supabase.rpc('delete_therapist', { p_id: id })
+
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      throw new Error(
+        'ยังไม่ได้ติดตั้งฟังก์ชันลบนักบำบัด กรุณารัน SQL migration 20261106000000_add_delete_therapist_function.sql ก่อนใช้งาน',
+      )
+    }
+    if (error.message.toLowerCase().includes('forbidden')) {
+      throw new Error('ไม่มีสิทธิ์ลบนักบำบัด')
+    }
+    throw new Error(error.message)
+  }
+}
+
 export async function updateTherapist(
   id: number,
   payload: TherapistFormPayload,

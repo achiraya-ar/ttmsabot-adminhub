@@ -46,6 +46,7 @@ supabase/migrations/20261027000001_add_adminhub_access.sql
 supabase/migrations/20261028000000_add_paypercase_access.sql
 supabase/migrations/20261105000001_migrate_schedules_to_versions.sql
 supabase/migrations/20261105000002_add_therapists_management.sql
+supabase/migrations/20261106000000_add_delete_therapist_function.sql
 ```
 
 Migration เหล่านี้จะ:
@@ -66,6 +67,8 @@ Migration เหล่านี้จะ:
 - เพิ่ม RLS policies ให้ Admin Hub แก้ไข `schedule_versions`
   และให้ทุกแอปที่อ่านตารางเวรอ่านเวอร์ชันตารางเวลาได้
 - เพิ่ม RLS policies ให้ Admin Hub เพิ่มและแก้ไขข้อมูลในตาราง `therapists`
+- เพิ่มฟังก์ชัน `delete_therapist()` สำหรับลบนักบำบัด เวอร์ชันตารางเวลา
+  และแถวในตาราง `schedules` เดิม (ถ้ามี) โดยไม่ลบข้อมูลการจองเดิม
 
 > เว็บไซต์เก่าที่ยังใช้ `schedules` จะไม่เห็นการเปลี่ยนเวลาแบบเวอร์ชันใหม่
 > จนกว่าจะอัปเดตมาใช้ `schedule_versions` จากนั้นจึงค่อยลบ `schedules` แยกภายหลัง

@@ -155,7 +155,7 @@
                 {{ formatDateTime(therapist.created_at) }}
               </td>
               <td>
-                <div class="flex items-center justify-end">
+                <div class="flex items-center justify-end gap-1.5">
                   <button
                     type="button"
                     class="btn-ghost btn-sm"
@@ -164,6 +164,20 @@
                     @click="openEdit(therapist)"
                   >
                     <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm text-ink-400 hover:text-rose-600"
+                    :disabled="deletingTherapistId === therapist.id"
+                    title="ลบนักบำบัด"
+                    :aria-label="`ลบนักบำบัด ${therapist.name}`"
+                    @click="handleDeleteTherapist(therapist)"
+                  >
+                    <i
+                      v-if="deletingTherapistId === therapist.id"
+                      class="fa-solid fa-circle-notch fa-spin"
+                    ></i>
+                    <i v-else class="fa-solid fa-trash-can"></i>
                   </button>
                 </div>
               </td>
@@ -191,7 +205,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listTherapists } from '@/services/therapists'
+import Swal from 'sweetalert2'
+import { deleteTherapist, listTherapists } from '@/services/therapists'
 import { formatDateTime, formatNumber } from '@/utils/format'
 import type { Therapist } from '@/types'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
@@ -208,6 +223,7 @@ const search = ref('')
 const statusFilter = ref('ALL')
 const modalOpen = ref(false)
 const editingTherapist = ref<Therapist | null>(null)
+const deletingTherapistId = ref<number | null>(null)
 
 const activeCount = computed(
   () => therapists.value.filter((therapist) => therapist.status === 'active').length,
@@ -310,6 +326,43 @@ async function handleSaved() {
   search.value = ''
   statusFilter.value = 'ALL'
   await loadTherapists()
+}
+
+async function handleDeleteTherapist(therapist: Therapist) {
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: 'ลบนักบำบัด?',
+    html: `ต้องการลบ <strong>${therapist.name}</strong> ใช่หรือไม่<br><span style="font-size:0.9em;color:#64748b">เวอร์ชันตารางเวลาทั้งหมดของนักบำบัดคนนี้จะถูกลบด้วย แต่ข้อมูลการจองเดิมจะไม่ถูกลบ</span>`,
+    showCancelButton: true,
+    confirmButtonText: 'ลบนักบำบัด',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#c2410c',
+    cancelButtonColor: '#64748b',
+    reverseButtons: true,
+  })
+
+  if (!result.isConfirmed) return
+
+  deletingTherapistId.value = therapist.id
+  try {
+    await deleteTherapist(therapist.id)
+    await Swal.fire({
+      icon: 'success',
+      title: 'ลบนักบำบัดแล้ว',
+      text: therapist.name,
+      timer: 1600,
+      showConfirmButton: false,
+    })
+    await loadTherapists()
+  } catch (err) {
+    await Swal.fire(
+      'ลบนักบำบัดไม่สำเร็จ',
+      err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด',
+      'error',
+    )
+  } finally {
+    deletingTherapistId.value = null
+  }
 }
 
 watch(

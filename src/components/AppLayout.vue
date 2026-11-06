@@ -41,13 +41,6 @@
         </nav>
 
         <div class="ml-auto flex items-center gap-2.5">
-          <span
-            class="hidden items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-medium text-emerald-300 xl:flex"
-          >
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-            ระบบออนไลน์
-          </span>
-
           <div class="hidden text-right xl:block">
             <p class="text-sm font-semibold text-cream-50">{{ auth.displayName }}</p>
             <p class="font-mono text-[10px] uppercase tracking-wider text-cream-200/50">
