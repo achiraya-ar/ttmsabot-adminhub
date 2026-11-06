@@ -49,6 +49,7 @@ supabase/migrations/20261105000002_add_therapists_management.sql
 supabase/migrations/20261106000000_add_delete_therapist_function.sql
 supabase/migrations/20261106000002_allow_staff_role.sql
 supabase/migrations/20261106000003_fix_schedule_versions_admin_policy.sql
+supabase/migrations/20261106000004_add_patient_self_booking_flag.sql
 ```
 
 Migration เหล่านี้จะ:
@@ -72,6 +73,8 @@ Migration เหล่านี้จะ:
 - เพิ่มฟังก์ชัน `delete_therapist()` สำหรับลบนักบำบัด เวอร์ชันตารางเวลา
   และแถวในตาราง `schedules` เดิม (ถ้ามี) โดยไม่ลบข้อมูลการจองเดิม
 - ปรับ `profiles_role_check` ให้รองรับบทบาท `Staff` สำหรับผู้ใช้ที่ไม่ใช่นักบำบัด
+- เพิ่มคอลัมน์ `bookings_register.can_self_book` สำหรับควบคุมว่า
+  ผู้ป่วยรายนั้นได้รับอนุมัติให้จองคิวเองผ่านหน้าเว็บหรือไม่
 
 > เว็บไซต์เก่าที่ยังใช้ `schedules` จะไม่เห็นการเปลี่ยนเวลาแบบเวอร์ชันใหม่
 > จนกว่าจะอัปเดตมาใช้ `schedule_versions` จากนั้นจึงค่อยลบ `schedules` แยกภายหลัง
