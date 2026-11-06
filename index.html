@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#EA580C" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <title>TTM-AdminHub | ศูนย์ควบคุมข้อมูลโรงพยาบาล</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <div
+        style="
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff7ed;
+          color: #7c2d12;
+          font-family: Prompt, sans-serif;
+        "
+      >
+        <div style="text-align: center">
+          <div
+            style="
+              width: 40px;
+              height: 40px;
+              margin: 0 auto 14px;
+              border: 3px solid #ffedd5;
+              border-top-color: #ea580c;
+              border-radius: 50%;
+              animation: ttmsa-spin 0.8s linear infinite;
+            "
+          ></div>
+          <p style="font-size: 14px">กำลังโหลด TTM-AdminHub...</p>
+        </div>
+      </div>
+      <style>
+        @keyframes ttmsa-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      </style>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,68 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF7ED;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FFEDD5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FED7AA;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="lockBodyGradient" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" style="stop-color:#FB923C;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#EA580C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C2410C;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="lockHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    </linearGradient>
+
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF08A;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#FDE047;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CA8A04;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="shadow3D" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14" />
+      <feOffset dx="10" dy="18" result="blur" />
+      <feComponentTransfer><feFuncA type="linear" slope="0.2" /></feComponentTransfer>
+      <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+
+    <filter id="embossGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-3" dy="-3" stdDeviation="3" flood-color="#FFFFFF" flood-opacity="0.9" />
+    </filter>
+
+    <filter id="insetShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#9A3412" flood-opacity="0.8" />
+    </filter>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#bgGradient)" rx="64" />
+
+  <g filter="url(#shadow3D)">
+    <path d="M 160 210 V 140 C 160 87 203 44 256 44 C 309 44 352 87 352 140 V 210" fill="none" stroke="#7C2D12" stroke-width="44" stroke-linecap="round" opacity="0.2" transform="translate(4, 6)" />
+    <path d="M 160 210 V 140 C 160 87 203 44 256 44 C 309 44 352 87 352 140 V 210" fill="none" stroke="url(#goldGradient)" stroke-width="42" stroke-linecap="round" filter="url(#embossGlow)" />
+
+    <g filter="url(#embossGlow)">
+      <rect x="106" y="196" width="300" height="236" rx="44" fill="url(#lockBodyGradient)" />
+      <rect x="114" y="202" width="284" height="110" rx="36" fill="url(#lockHighlight)" />
+      <path d="M 148 200 L 364 200" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6" />
+    </g>
+
+    <g filter="url(#insetShadow)">
+      <circle cx="256" cy="290" r="22" fill="#431407" />
+      <path d="M 244 290 L 268 290 L 274 344 C 274 348.4 270.4 352 266 352 L 246 352 C 241.6 352 238 348.4 238 344 Z" fill="#431407" />
+      <circle cx="250" cy="284" r="5" fill="#FFFFFF" opacity="0.7" />
+    </g>
+
+    <g transform="translate(20, -10) rotate(-28 320 340)" filter="url(#embossGlow)">
+      <path d="M 430 330 L 230 330 M 265 330 V 360 M 295 330 V 355 M 310 330 V 355" stroke="#EA580C" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" transform="translate(4, 6)" />
+      <path d="M 430 330 L 220 330 M 260 330 V 362 M 290 330 V 356 M 305 330 V 356" stroke="url(#goldGradient)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="430" cy="330" r="42" fill="url(#goldGradient)" stroke="#FFFFFF" stroke-width="4" />
+      <circle cx="430" cy="330" r="18" fill="#FFF7ED" filter="url(#insetShadow)" />
+      <circle cx="418" cy="318" r="8" fill="#FFFFFF" opacity="0.8" />
+    </g>
+  </g>
+</svg>
