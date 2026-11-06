@@ -165,6 +165,22 @@ textarea {
     @apply transition-colors hover:bg-brand-50/60;
   }
 
+  .data-table tbody tr.row-needs-edit {
+    @apply bg-orange-100;
+  }
+
+  .data-table tbody tr.row-needs-edit:hover {
+    @apply bg-orange-200/70;
+  }
+
+  .data-table tbody tr.row-needs-edit td {
+    @apply border-orange-200;
+  }
+
+  .data-table tbody tr.row-needs-edit td:first-child {
+    box-shadow: inset 4px 0 0 #f97316;
+  }
+
   .data-table tbody tr:last-child td {
     @apply border-b-0;
   }

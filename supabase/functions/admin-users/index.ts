@@ -59,7 +59,7 @@ function translateAuthError(message: string): string {
     return 'อีเมลนี้ถูกใช้งานแล้ว'
   }
   if (message.includes('Password should be')) {
-    return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+    return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร (ข้อกำหนดของ Supabase Auth)'
   }
   if (message.includes('Invalid email')) {
     return 'รูปแบบอีเมลไม่ถูกต้อง'
@@ -97,7 +97,7 @@ async function createUser(
   body: Record<string, unknown>,
 ): Promise<Response> {
   const username = requiredString(body.username, 'ชื่อผู้ใช้')
-  const fullName = requiredString(body.full_name, 'ชื่อ-นามสกุล')
+  const fullName = requiredString(body.full_name, 'ชื่อ')
   const email = requiredString(body.email, 'อีเมล').toLowerCase()
   const password = requiredString(body.password, 'รหัสผ่าน')
   const role = requiredString(body.role, 'บทบาท')
@@ -157,6 +157,60 @@ async function createUser(
   return json({ ok: true, id: created.user.id })
 }
 
+async function createProfile(
+  admin: SupabaseClient,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  const id = requiredString(body.id, 'id')
+  const username = requiredString(body.username, 'ชื่อผู้ใช้')
+  const fullName = requiredString(body.full_name, 'ชื่อ')
+  const email = requiredString(body.email, 'อีเมล').toLowerCase()
+  const role = requiredString(body.role, 'บทบาท')
+
+  if (!isValidEmail(email)) throw new Error('รูปแบบอีเมลไม่ถูกต้อง')
+
+  const { data: authUser, error: authError } = await admin.auth.admin.getUserById(id)
+  if (authError || !authUser.user) {
+    throw new Error('ไม่พบผู้ใช้ใน Supabase Auth')
+  }
+
+  if ((authUser.user.email ?? '').toLowerCase() !== email) {
+    throw new Error('อีเมลไม่ตรงกับบัญชี Supabase Auth')
+  }
+
+  await ensureUniqueUsername(admin, username)
+
+  const { data: existingById, error: existingByIdError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+  if (existingByIdError) throw new Error(existingByIdError.message)
+  if (existingById) throw new Error('ผู้ใช้นี้มีโปรไฟล์อยู่แล้ว')
+
+  const { data: existingByEmail, error: existingByEmailError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+  if (existingByEmailError) throw new Error(existingByEmailError.message)
+  if (existingByEmail) throw new Error('อีเมลนี้มีโปรไฟล์อยู่แล้ว')
+
+  const { error: insertError } = await admin.from('profiles').insert({
+    id,
+    username,
+    full_name: fullName,
+    email,
+    role,
+    updated_at: new Date().toISOString(),
+    ...buildPermissionPayload(body),
+  })
+
+  if (insertError) throw new Error(insertError.message)
+
+  return json({ ok: true, id })
+}
+
 async function updateUser(
   admin: SupabaseClient,
   callerId: string,
@@ -174,7 +228,7 @@ async function updateUser(
   if (!currentProfile) throw new Error('ไม่พบผู้ใช้ที่ต้องการแก้ไข')
 
   const username = requiredString(body.username, 'ชื่อผู้ใช้')
-  const fullName = requiredString(body.full_name, 'ชื่อ-นามสกุล')
+  const fullName = requiredString(body.full_name, 'ชื่อ')
   const role = requiredString(body.role, 'บทบาท')
   const permissions = buildPermissionPayload(body)
   const email = requiredString(body.email, 'อีเมล').toLowerCase()
@@ -241,8 +295,15 @@ async function updateUser(
   return json({ ok: true })
 }
 
-async function listLastSignIns(admin: SupabaseClient): Promise<Response> {
-  const users: Array<{ id: string; last_sign_in_at: string | null }> = []
+interface AuthUserRecord {
+  id: string
+  email?: string | null
+  created_at?: string | null
+  last_sign_in_at?: string | null
+}
+
+async function getAllAuthUsers(admin: SupabaseClient): Promise<AuthUserRecord[]> {
+  const users: AuthUserRecord[] = []
   const perPage = 1000
   let page = 1
 
@@ -250,19 +311,28 @@ async function listLastSignIns(admin: SupabaseClient): Promise<Response> {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
     if (error) throw new Error(error.message)
 
-    const pageUsers = data?.users ?? []
-    users.push(
-      ...pageUsers.map((user) => ({
-        id: user.id,
-        last_sign_in_at: user.last_sign_in_at ?? null,
-      })),
-    )
+    const pageUsers = (data?.users ?? []) as AuthUserRecord[]
+    users.push(...pageUsers)
 
     if (pageUsers.length < perPage) break
     page++
   }
 
-  return json({ ok: true, users })
+  return users
+}
+
+async function listLastSignIns(admin: SupabaseClient): Promise<Response> {
+  const users = await getAllAuthUsers(admin)
+
+  return json({
+    ok: true,
+    users: users.map((user) => ({
+      id: user.id,
+      email: user.email ?? null,
+      created_at: user.created_at ?? null,
+      last_sign_in_at: user.last_sign_in_at ?? null,
+    })),
+  })
 }
 
 async function deleteUser(
@@ -356,6 +426,8 @@ Deno.serve(async (req) => {
     switch (body.action) {
       case 'create':
         return await createUser(admin, body)
+      case 'create-profile':
+        return await createProfile(admin, body)
       case 'update':
         return await updateUser(admin, callerUser.id, body)
       case 'delete':

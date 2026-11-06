@@ -1,21 +1,16 @@
 import { supabase } from '@/lib/supabase'
 import { PROFILE_COLUMNS } from '@/services/auth'
-import type { AdminProfile, ProfileFormPayload } from '@/types'
+import type { AdminProfile, AuthUserInfo, ProfileFormPayload } from '@/types'
 
 export interface UpdateAdminUserPayload extends ProfileFormPayload {
   id: string
-}
-
-export interface LastSignInInfo {
-  id: string
-  last_sign_in_at: string | null
 }
 
 export interface AdminUserResponse {
   ok: boolean
   id?: string
   warning?: string
-  users?: LastSignInInfo[]
+  users?: AuthUserInfo[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -29,8 +24,19 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
   if (context instanceof Response) {
     try {
       const body = await context.clone().json()
-      if (isRecord(body) && typeof body.error === 'string') {
-        return body.error
+      if (isRecord(body)) {
+        if (typeof body.error === 'string') {
+          if (body.error === 'Unknown action') {
+            return 'Edge Function "admin-users" เป็นเวอร์ชันเก่า กรุณา deploy โค้ดล่าสุดจาก supabase/functions/admin-users/index.ts แล้วลองใหม่'
+          }
+          return body.error
+        }
+        if (typeof body.message === 'string') {
+          if (context.status === 404) {
+            return 'ยังไม่ได้ deploy Edge Function "admin-users" กรุณาดูขั้นตอนใน README'
+          }
+          return body.message
+        }
       }
     } catch {
       // Response did not contain JSON.
@@ -39,8 +45,15 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
 
   if (typeof error.message === 'string') {
     if (
+      context instanceof Response &&
+      context.status === 404
+    ) {
+      return 'ยังไม่ได้ deploy Edge Function "admin-users" กรุณาดูขั้นตอนใน README'
+    }
+    if (
       error.message.includes('Failed to send a request to the Edge Function') ||
-      error.message.includes('Failed to fetch')
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('Requested function was not found')
     ) {
       return 'ยังไม่ได้ deploy Edge Function "admin-users" กรุณาดูขั้นตอนใน README'
     }

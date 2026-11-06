@@ -12,6 +12,13 @@ export interface AdminProfile {
   can_access_adminhub: boolean
 }
 
+export interface AuthUserInfo {
+  id: string
+  email: string | null
+  created_at?: string | null
+  last_sign_in_at: string | null
+}
+
 export interface ProfilePermissions {
   can_access_personalworkschedule: boolean
   can_access_workschedule: boolean

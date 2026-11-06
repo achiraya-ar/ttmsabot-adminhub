@@ -5,14 +5,16 @@
         <p class="font-mono text-xs font-semibold tracking-[0.08em] text-brand-600">profiles</p>
         <h2 class="mt-1 text-2xl font-semibold tracking-tight text-ink-900">ผู้ใช้และสิทธิ์</h2>
         <p class="mt-1.5 max-w-2xl text-sm leading-6 text-ink-500">
-          จัดการข้อมูลผู้ใช้ บทบาท และสิทธิ์การเข้าถึงทั้ง 5 ระบบ
-          การสร้างผู้ใช้ใหม่จะสร้างบัญชี Supabase Auth พร้อมโปรไฟล์ให้อัตโนมัติ
+          ผู้ใช้ใหม่จาก Supabase Auth จะถูกเพิ่มเข้า profiles อัตโนมัติ
+          เมื่อมีผู้ใช้ใหม่ สามารถตรวจสอบและแก้ไขข้อมูล บทบาท และสิทธิ์ได้ในหน้านี้
         </p>
       </div>
-      <button class="btn-primary" @click="openCreate">
-        <i class="fa-solid fa-user-plus"></i>
-        เพิ่มผู้ใช้
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button class="btn-secondary" :disabled="loading" @click="loadProfiles">
+          <i class="fa-solid fa-rotate-right"></i>
+          รีเฟรช
+        </button>
+      </div>
     </div>
 
     <section class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -54,7 +56,7 @@
           <input
             v-model="search"
             type="search"
-            placeholder="ค้นหาชื่อผู้ใช้ ชื่อ-นามสกุล อีเมล หรือบทบาท..."
+            placeholder="ค้นหาชื่อผู้ใช้ ชื่อ อีเมล หรือบทบาท..."
             class="input pl-10"
             aria-label="ค้นหาผู้ใช้"
           />
@@ -94,14 +96,14 @@
         title="ไม่พบผู้ใช้"
         :description="
           profiles.length === 0
-            ? 'ยังไม่มีผู้ใช้ในตาราง profiles เริ่มต้นด้วยการเพิ่มผู้ใช้คนแรก'
+            ? 'ยังไม่มีผู้ใช้ใน profiles ระบบจะเพิ่มจาก Supabase Auth อัตโนมัติเมื่อมีผู้ใช้ใหม่'
             : 'ลองเปลี่ยนคำค้นหาหรือตัวกรองบทบาท'
         "
       >
         <template #action>
-          <button v-if="profiles.length === 0" class="btn-primary" @click="openCreate">
-            <i class="fa-solid fa-user-plus"></i>
-            เพิ่มผู้ใช้
+          <button v-if="profiles.length === 0" class="btn-secondary" @click="loadProfiles">
+            <i class="fa-solid fa-rotate-right"></i>
+            รีเฟรช
           </button>
           <button v-else class="btn-secondary" @click="clearFilters">
             <i class="fa-solid fa-filter-circle-xmark"></i>
@@ -124,7 +126,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="profile in filteredProfiles" :key="profile.id">
+            <tr
+              v-for="profile in filteredProfiles"
+              :key="profile.id"
+              :class="{ 'row-needs-edit': needsProfileEdit(profile) }"
+            >
               <td>
                 <div class="flex items-center gap-3">
                   <div
@@ -196,9 +202,10 @@
 
     <p class="px-1 text-xs leading-5 text-ink-400">
       <i class="fa-solid fa-circle-info mr-1"></i>
-      การเพิ่ม แก้ไข ลบผู้ใช้ และเวลาที่เข้าสู่ระบบล่าสุด ต้องมี Edge Function
+      ผู้ใช้ใหม่จาก Supabase Auth จะถูกเพิ่มเข้า profiles อัตโนมัติ
+      การแก้ไขและลบผู้ใช้ต้องมี Edge Function
       <code class="rounded bg-ink-200/60 px-1 py-0.5 font-mono text-[11px] text-ink-600">admin-users</code>
-      เวอร์ชันล่าสุด deploy ไว้ใน Supabase แล้ว (ดูขั้นตอนใน README)
+      เวอร์ชันล่าสุด
     </p>
 
     <ProfileFormModal
@@ -213,8 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
 import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
 import { deleteAdminUser, listLastSignIns, listProfiles } from '@/services/profiles'
@@ -227,8 +233,6 @@ import PermissionBadges from '@/components/PermissionBadges.vue'
 import ProfileFormModal from '@/components/ProfileFormModal.vue'
 
 const auth = useAuthStore()
-const route = useRoute()
-const router = useRouter()
 
 const profiles = ref<AdminProfile[]>([])
 const lastSignIns = ref<Record<string, string | null>>({})
@@ -264,7 +268,7 @@ const noAccessCount = computed(
 const filteredProfiles = computed(() => {
   const query = search.value.trim().toLowerCase()
 
-  return profiles.value.filter((profile) => {
+  const rows = profiles.value.filter((profile) => {
     const matchesSearch =
       !query ||
       [profile.username, profile.full_name, profile.email, profile.role].some((value) =>
@@ -273,6 +277,8 @@ const filteredProfiles = computed(() => {
     const matchesRole = roleFilter.value === 'ALL' || profile.role === roleFilter.value
     return matchesSearch && matchesRole
   })
+
+  return rows
 })
 
 function profileInitials(name: string): string {
@@ -280,6 +286,16 @@ function profileInitials(name: string): string {
   if (parts.length === 0) return '?'
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase()
+}
+
+function needsProfileEdit(profile: AdminProfile): boolean {
+  const normalize = (value: string) =>
+    value.trim().toLowerCase().replace(/[\s_-]+/g, '')
+
+  return (
+    normalize(profile.username) === 'newuser' ||
+    normalize(profile.full_name) === 'newuser'
+  )
 }
 
 async function loadProfiles() {
@@ -293,15 +309,11 @@ async function loadProfiles() {
     profiles.value = profileRows
     lastSignIns.value = signInRows
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด'
+    error.value =
+      err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด'
   } finally {
     loading.value = false
   }
-}
-
-function openCreate() {
-  editingProfile.value = null
-  modalOpen.value = true
 }
 
 function openEdit(profile: AdminProfile) {
@@ -368,21 +380,5 @@ async function handleDelete(profile: AdminProfile) {
   }
 }
 
-watch(
-  () => route.query.new,
-  async (value) => {
-    if (value !== '1') return
-    openCreate()
-    await router.replace({ query: {} })
-  },
-)
-
-onMounted(async () => {
-  await loadProfiles()
-
-  if (route.query.new === '1') {
-    openCreate()
-    await router.replace({ query: {} })
-  }
-})
+onMounted(loadProfiles)
 </script>

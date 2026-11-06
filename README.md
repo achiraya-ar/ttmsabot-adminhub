@@ -47,6 +47,7 @@ supabase/migrations/20261028000000_add_paypercase_access.sql
 supabase/migrations/20261105000001_migrate_schedules_to_versions.sql
 supabase/migrations/20261105000002_add_therapists_management.sql
 supabase/migrations/20261106000000_add_delete_therapist_function.sql
+supabase/migrations/20261106000002_allow_staff_role.sql
 ```
 
 Migration เหล่านี้จะ:
@@ -69,6 +70,7 @@ Migration เหล่านี้จะ:
 - เพิ่ม RLS policies ให้ Admin Hub เพิ่มและแก้ไขข้อมูลในตาราง `therapists`
 - เพิ่มฟังก์ชัน `delete_therapist()` สำหรับลบนักบำบัด เวอร์ชันตารางเวลา
   และแถวในตาราง `schedules` เดิม (ถ้ามี) โดยไม่ลบข้อมูลการจองเดิม
+- ปรับ `profiles_role_check` ให้รองรับบทบาท `Staff` สำหรับผู้ใช้ที่ไม่ใช่นักบำบัด
 
 > เว็บไซต์เก่าที่ยังใช้ `schedules` จะไม่เห็นการเปลี่ยนเวลาแบบเวอร์ชันใหม่
 > จนกว่าจะอัปเดตมาใช้ `schedule_versions` จากนั้นจึงค่อยลบ `schedules` แยกภายหลัง
@@ -139,6 +141,22 @@ supabase functions deploy admin-users
 - ยังดูรายชื่อผู้ใช้และจัดการวันหยุดได้
 - แต่จะเพิ่ม/แก้ไข/ลบผู้ใช้ไม่ได้ เพราะระบบใช้ Edge Function เป็นตัวตรวจสิทธิ์
   และเขียนทั้ง `profiles` กับ Supabase Auth ให้สอดคล้องกัน
+
+### การเพิ่มผู้ใช้ใหม่
+
+ระบบเดิมจะเพิ่ม Auth user ใหม่ลงตาราง `profiles` ให้อัตโนมัติอยู่แล้ว
+
+1. สร้างผู้ใช้ที่ Supabase Dashboard > **Authentication** > **Users** > **Add user**
+2. ใส่อีเมลและรหัสผ่าน และเปิด **Auto Confirm User**
+3. กลับมาที่ AdminHub > **profiles** > กด **รีเฟรช**
+4. ตรวจสอบและแก้ไขชื่อผู้ใช้ ชื่อ บทบาท และสิทธิ์ แล้วกด **บันทึกการแก้ไข**
+
+> หน้า profiles ไม่มีปุ่มเพิ่มผู้ใช้แล้ว เพราะใช้ข้อมูลที่ระบบซิงก์จาก Supabase Auth
+> และต้อง deploy Edge Function `admin-users` เวอร์ชันล่าสุดสำหรับการแก้ไขผู้ใช้
+
+> **หมายเหตุเรื่องรหัสผ่าน:** Supabase Auth (GoTrue) กำหนดขั้นต่ำสุดที่
+> **6 ตัวอักษร** จึงไม่สามารถใช้รหัสผ่าน 1 ตัวอักษรได้
+> ให้ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษรครับ
 
 ## 4. รันในเครื่อง
 

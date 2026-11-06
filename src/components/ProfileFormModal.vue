@@ -1,12 +1,8 @@
 <template>
   <BaseModal
     :open="open"
-    :title="isEditing ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้ใหม่'"
-    :subtitle="
-      isEditing
-        ? 'แก้ไขข้อมูลโปรไฟล์ บทบาท และสิทธิ์การเข้าถึงระบบ'
-        : 'สร้างบัญชี Supabase Auth และโปรไฟล์ผู้ใช้ใหม่'
-    "
+    title="แก้ไขผู้ใช้"
+    subtitle="แก้ไขข้อมูลโปรไฟล์ บทบาท และสิทธิ์การเข้าถึงระบบ"
     max-width="max-w-3xl"
     @close="handleClose"
   >
@@ -20,6 +16,43 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label for="profile-email" class="label">อีเมล <span class="text-rose-500">*</span></label>
+            <input
+              id="profile-email"
+              v-model="form.email"
+              type="email"
+              required
+              autocomplete="off"
+              placeholder="name@hospital.go.th"
+              class="input"
+              :disabled="submitting"
+            />
+            <p class="field-hint">
+              ใช้สำหรับ Supabase Auth · การเปลี่ยนอีเมลจะเปลี่ยนทั้ง Auth และ profiles
+            </p>
+          </div>
+
+          <div>
+            <label for="profile-role" class="label">บทบาท <span class="text-rose-500">*</span></label>
+            <select
+              id="profile-role"
+              v-model="form.role"
+              required
+              class="input"
+              :disabled="submitting"
+            >
+              <option disabled value="">-- เลือกบทบาท --</option>
+              <option v-for="role in roleOptions" :key="role" :value="role">
+                {{ role }}
+              </option>
+            </select>
+            <p class="field-hint">
+              Manager = จัดการคิวพนักงานทุกคน · Therapist / Staff = ดูเฉพาะข้อมูลของตัวเอง
+              โดยจับคู่จากชื่อ · สิทธิ์การเข้าถึงระบบกำหนดจาก checkbox ด้านล่าง
+            </p>
+          </div>
+
           <div>
             <label for="profile-username" class="label">ชื่อผู้ใช้ <span class="text-rose-500">*</span></label>
             <input
@@ -36,54 +69,27 @@
           </div>
 
           <div>
-            <label for="profile-fullname" class="label">ชื่อ-นามสกุล <span class="text-rose-500">*</span></label>
+            <label for="profile-fullname" class="label">
+              ชื่อ
+              <span v-if="form.role !== 'Staff'" class="text-rose-500">*</span>
+            </label>
             <input
               id="profile-fullname"
               v-model="form.full_name"
               type="text"
-              required
+              :required="form.role !== 'Staff'"
               autocomplete="off"
-              placeholder="เช่น สมชาย ใจดี"
-              class="input"
-              :disabled="submitting"
-            />
-            <p class="field-hint">ใช้เป็นชื่อที่แสดงในระบบ และใช้จับคู่กับชื่อนักหัตถการ</p>
-          </div>
-
-          <div>
-            <label for="profile-email" class="label">อีเมล <span class="text-rose-500">*</span></label>
-            <input
-              id="profile-email"
-              v-model="form.email"
-              type="email"
-              required
-              autocomplete="off"
-              placeholder="name@hospital.go.th"
+              placeholder="เช่น สมชาย"
               class="input"
               :disabled="submitting"
             />
             <p class="field-hint">
-              ใช้สำหรับ Supabase Auth
-              <template v-if="isEditing"> · การเปลี่ยนอีเมลจะเปลี่ยนทั้ง Auth และ profiles</template>
+              {{
+                form.role === 'Staff'
+                  ? 'ไม่บังคับ แต่แนะนำให้กรอกเพื่อระบุตัวตน · ชื่อนี้จะไม่ถูกนำไปเป็นรายชื่อนักบำบัดในระบบจองคิว'
+                  : 'ใช้เป็นชื่อที่แสดงในระบบ และจับคู่กับชื่อนักบำบัด'
+              }}
             </p>
-          </div>
-
-          <div>
-            <label for="profile-role" class="label">บทบาท <span class="text-rose-500">*</span></label>
-            <input
-              id="profile-role"
-              v-model="form.role"
-              type="text"
-              required
-              list="role-suggestions"
-              placeholder="เช่น Therapist, Manager, Staff"
-              class="input"
-              :disabled="submitting"
-            />
-            <datalist id="role-suggestions">
-              <option v-for="role in roleSuggestions" :key="role" :value="role"></option>
-            </datalist>
-            <p class="field-hint">บทบาทใน personalworkschedule ใช้แยกเมนูผู้จัดการและนักหัตถการ</p>
           </div>
         </div>
       </section>
@@ -95,23 +101,19 @@
               <i class="fa-solid fa-key"></i>
             </span>
             <h3 class="text-sm font-semibold text-ink-900">
-              {{ isEditing ? 'เปลี่ยนรหัสผ่าน (ไม่บังคับ)' : 'รหัสผ่าน' }}
+              เปลี่ยนรหัสผ่าน (ไม่บังคับ)
             </h3>
           </div>
-          <span v-if="isEditing" class="text-xs text-ink-500">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</span>
+          <span class="text-xs text-ink-500">เว้นว่างไว้หากไม่ต้องการเปลี่ยน</span>
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label for="profile-password" class="label">
-              {{ isEditing ? 'รหัสผ่านใหม่' : 'รหัสผ่าน' }}
-              <span v-if="!isEditing" class="text-rose-500">*</span>
-            </label>
+            <label for="profile-password" class="label">รหัสผ่านใหม่</label>
             <input
               id="profile-password"
               v-model="form.password"
               type="password"
-              :required="!isEditing"
               autocomplete="new-password"
               placeholder="อย่างน้อย 6 ตัวอักษร"
               class="input"
@@ -124,7 +126,6 @@
               id="profile-confirm-password"
               v-model="form.confirmPassword"
               type="password"
-              :required="!isEditing"
               autocomplete="new-password"
               placeholder="กรอกรหัสผ่านอีกครั้ง"
               class="input"
@@ -149,14 +150,18 @@
           <label
             v-for="permission in permissionOptions"
             :key="permission.key"
-            class="flex cursor-pointer items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition hover:border-brand-200 hover:bg-brand-50/30"
-            :class="{ 'opacity-60': permission.key === 'can_access_adminhub' && isSelf }"
+            class="flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3.5 transition"
+            :class="{
+              'opacity-60': isPermissionDisabled(permission.key),
+              'cursor-pointer hover:border-brand-200 hover:bg-brand-50/30':
+                !isPermissionDisabled(permission.key),
+            }"
           >
             <input
               v-model="form[permission.key]"
               type="checkbox"
               class="mt-1 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-200"
-              :disabled="submitting || (permission.key === 'can_access_adminhub' && isSelf)"
+              :disabled="submitting || isPermissionDisabled(permission.key)"
             />
             <span class="min-w-0">
               <span class="flex items-center gap-2 text-sm font-medium text-ink-800">
@@ -165,6 +170,12 @@
               </span>
               <span class="mt-1 block text-xs leading-5 text-ink-500">
                 {{ permission.description }}
+              </span>
+              <span
+                v-if="permission.key === 'can_access_personalworkschedule' && form.role === 'Staff'"
+                class="mt-1 block text-[11px] font-medium text-ink-400"
+              >
+                ไม่ใช้สำหรับ Staff เพราะไม่ได้เป็นนักบำบัด
               </span>
               <span
                 v-if="permission.key === 'can_access_adminhub' && isSelf"
@@ -191,9 +202,9 @@
       >
         <i class="fa-solid fa-circle-info mt-0.5"></i>
         <span>
-          การบันทึกข้อมูลผู้ใช้ทุกครั้งต้องมี Edge Function
+          การแก้ไขข้อมูลและรหัสผ่านจะถูกบันทึกผ่าน Edge Function
           <code class="rounded bg-amber-100 px-1 py-0.5 font-mono text-[11px]">admin-users</code>
-          ซึ่ง deploy ไว้ใน Supabase แล้ว (ดูขั้นตอนใน README)
+          และอัปเดตทั้งตาราง profiles กับ Supabase Auth
         </span>
       </div>
     </form>
@@ -202,10 +213,15 @@
       <button type="button" class="btn-secondary" :disabled="submitting" @click="handleClose">
         ยกเลิก
       </button>
-      <button type="submit" form="profile-form" class="btn-primary" :disabled="submitting">
+      <button
+        type="submit"
+        form="profile-form"
+        class="btn-primary"
+        :disabled="submitting"
+      >
         <i v-if="submitting" class="fa-solid fa-circle-notch fa-spin"></i>
         <i v-else class="fa-solid fa-floppy-disk"></i>
-        {{ submitting ? 'กำลังบันทึก...' : isEditing ? 'บันทึกการแก้ไข' : 'สร้างผู้ใช้' }}
+        {{ submitting ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข' }}
       </button>
     </template>
   </BaseModal>
@@ -215,10 +231,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import Swal from 'sweetalert2'
 import BaseModal from '@/components/BaseModal.vue'
-import {
-  createAdminUser,
-  updateAdminUser,
-} from '@/services/profiles'
+import { updateAdminUser } from '@/services/profiles'
 import type { AdminProfile } from '@/types'
 
 interface ProfileFormState {
@@ -264,12 +277,26 @@ const form = reactive<ProfileFormState>({
   can_access_adminhub: false,
 })
 
-const isEditing = computed(() => !!props.profile)
 const isSelf = computed(() => props.profile?.id === props.currentUserId)
 
-const roleSuggestions = computed(() =>
-  Array.from(new Set([...props.roles, 'Manager', 'Therapist', 'Staff'])).filter(Boolean),
-)
+const roleOptions = computed(() => {
+  const preferred = ['Therapist', 'Manager', 'Staff']
+  const extras = props.roles.filter(
+    (role) => role && !preferred.includes(role),
+  )
+  const current = form.role.trim()
+  if (current && !preferred.includes(current) && !extras.includes(current)) {
+    extras.push(current)
+  }
+  return [...preferred, ...extras.sort((a, b) => a.localeCompare(b, 'th'))]
+})
+
+function isPermissionDisabled(key: string): boolean {
+  return (
+    (key === 'can_access_adminhub' && isSelf.value) ||
+    (key === 'can_access_personalworkschedule' && form.role === 'Staff')
+  )
+}
 
 const permissionOptions = [
   {
@@ -322,8 +349,20 @@ function resetForm() {
   form.can_access_bookingportalmanager = profile?.can_access_bookingportalmanager ?? false
   form.can_access_paypercase = profile?.can_access_paypercase ?? false
   form.can_access_adminhub = profile?.can_access_adminhub ?? false
+  if (form.role === 'Staff') {
+    form.can_access_personalworkschedule = false
+  }
   submitError.value = ''
 }
+
+watch(
+  () => form.role,
+  (role) => {
+    if (role === 'Staff') {
+      form.can_access_personalworkschedule = false
+    }
+  },
+)
 
 watch(
   () => props.open,
@@ -341,15 +380,21 @@ watch(
 
 function validate(): string | null {
   if (!form.username.trim()) return 'กรุณากรอกชื่อผู้ใช้'
-  if (!form.full_name.trim()) return 'กรุณากรอกชื่อ-นามสกุล'
+  if (form.role !== 'Staff' && !form.full_name.trim()) {
+    return 'กรุณากรอกชื่อ'
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
     return 'รูปแบบอีเมลไม่ถูกต้อง'
   }
+
   if (!form.role.trim()) return 'กรุณากรอกบทบาท'
 
-  if (!isEditing.value || form.password) {
+  if (form.password) {
     if (form.password.length < 6) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
-    if (form.password !== form.confirmPassword) return 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน'
+    if (form.password !== form.confirmPassword) {
+      return 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน'
+    }
   }
 
   if (isSelf.value && !form.can_access_adminhub) {
@@ -367,35 +412,24 @@ async function handleSubmit() {
     return
   }
 
+  if (!props.profile) {
+    submitError.value = 'ไม่พบข้อมูลผู้ใช้ที่ต้องการแก้ไข'
+    return
+  }
+
   submitting.value = true
   try {
     const payload = {
       username: form.username.trim(),
-      full_name: form.full_name.trim(),
+      full_name: form.full_name.trim() || form.username.trim(),
       email: form.email.trim().toLowerCase(),
       role: form.role.trim(),
-      can_access_personalworkschedule: form.can_access_personalworkschedule,
+      can_access_personalworkschedule:
+        form.role === 'Staff' ? false : form.can_access_personalworkschedule,
       can_access_workschedule: form.can_access_workschedule,
       can_access_bookingportalmanager: form.can_access_bookingportalmanager,
       can_access_paypercase: form.can_access_paypercase,
       can_access_adminhub: form.can_access_adminhub,
-    }
-
-    if (!props.profile) {
-      await createAdminUser({
-        ...payload,
-        password: form.password,
-      })
-      await Swal.fire({
-        icon: 'success',
-        title: 'สร้างผู้ใช้สำเร็จ',
-        text: `เพิ่ม ${payload.full_name} เข้าระบบแล้ว`,
-        timer: 1600,
-        showConfirmButton: false,
-      })
-      emit('saved')
-      emit('close')
-      return
     }
 
     await updateAdminUser({
