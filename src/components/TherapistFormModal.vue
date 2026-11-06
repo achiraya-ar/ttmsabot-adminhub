@@ -5,7 +5,7 @@
     :subtitle="
       isEditing
         ? 'แก้ไขชื่อ สถานะ และเลขใบประกอบวิชาชีพ'
-        : 'เพิ่มรายชื่อนักบำบัดใหม่เข้าสู่ระบบ'
+        : 'เลือกนักบำบัดจาก profiles ที่มี role = Therapist และยังไม่ได้เพิ่ม'
     "
     max-width="max-w-lg"
     @close="handleClose"
@@ -15,15 +15,27 @@
         <label for="therapist-name" class="label">
           ชื่อนักบำบัด <span class="text-rose-500">*</span>
         </label>
-        <input
+        <select
           id="therapist-name"
           v-model="form.name"
-          type="text"
           required
-          placeholder="เช่น ทิพวัลย์"
           class="input"
-          :disabled="submitting"
-        />
+          :disabled="submitting || (!isEditing && therapistNameOptions.length === 0)"
+        >
+          <option disabled value="">-- เลือกนักบำบัด --</option>
+          <option v-for="name in therapistNameOptions" :key="name" :value="name">
+            {{ name }}
+          </option>
+        </select>
+        <p class="field-hint">
+          ดึงรายชื่อจากตาราง profiles เฉพาะ role = Therapist ที่ยังไม่มีในตาราง therapists
+        </p>
+        <p
+          v-if="!isEditing && availableTherapists.length === 0"
+          class="field-hint text-amber-600"
+        >
+          ไม่พบผู้ใช้ role Therapist ที่ยังไม่ได้เพิ่ม กรุณาไปกำหนด role ที่หน้า profiles ก่อน
+        </p>
       </div>
 
       <div>
@@ -68,7 +80,12 @@
       <button type="button" class="btn-secondary" :disabled="submitting" @click="handleClose">
         ยกเลิก
       </button>
-      <button type="submit" form="therapist-form" class="btn-primary" :disabled="submitting">
+      <button
+        type="submit"
+        form="therapist-form"
+        class="btn-primary"
+        :disabled="submitting || (!isEditing && therapistNameOptions.length === 0)"
+      >
         <i v-if="submitting" class="fa-solid fa-circle-notch fa-spin"></i>
         <i v-else class="fa-solid fa-floppy-disk"></i>
         {{ submitting ? 'กำลังบันทึก...' : isEditing ? 'บันทึกการแก้ไข' : 'เพิ่มนักบำบัด' }}
@@ -87,6 +104,7 @@ import type { Therapist } from '@/types'
 const props = defineProps<{
   open: boolean
   therapist: Therapist | null
+  availableTherapists: string[]
 }>()
 
 const emit = defineEmits<{
@@ -104,6 +122,14 @@ const form = reactive({
 })
 
 const isEditing = computed(() => !!props.therapist)
+
+const therapistNameOptions = computed(() => {
+  const names = new Set(
+    props.availableTherapists.map((name) => name.trim()).filter(Boolean),
+  )
+  if (props.therapist?.name) names.add(props.therapist.name.trim())
+  return [...names].sort((a, b) => a.localeCompare(b, 'th'))
+})
 
 const hasCustomStatus = computed(() => {
   const status = props.therapist?.status

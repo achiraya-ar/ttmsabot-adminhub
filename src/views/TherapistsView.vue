@@ -10,7 +10,7 @@
         </h2>
         <p class="mt-1.5 max-w-2xl text-sm leading-6 text-ink-500">
           เพิ่มและแก้ไขรายชื่อนักบำบัด สถานะการปฏิบัติงาน และเลขใบประกอบวิชาชีพ
-          ข้อมูลนี้ใช้เป็นรายชื่อหลักในหน้าจัดการตารางเวลา
+          โดยรายชื่อที่เพิ่มได้จะดึงจาก profiles เฉพาะ role = Therapist ที่ยังไม่ได้เพิ่ม
         </p>
       </div>
       <button class="btn-primary" @click="openCreate">
@@ -196,6 +196,7 @@
     <TherapistFormModal
       :open="modalOpen"
       :therapist="editingTherapist"
+      :available-therapists="availableTherapistNames"
       @close="modalOpen = false"
       @saved="handleSaved"
     />
@@ -207,8 +208,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import { deleteTherapist, listTherapists } from '@/services/therapists'
+import { listProfiles } from '@/services/profiles'
 import { formatDateTime, formatNumber } from '@/utils/format'
-import type { Therapist } from '@/types'
+import type { AdminProfile, Therapist } from '@/types'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import TherapistFormModal from '@/components/TherapistFormModal.vue'
@@ -217,6 +219,7 @@ const route = useRoute()
 const router = useRouter()
 
 const therapists = ref<Therapist[]>([])
+const profiles = ref<AdminProfile[]>([])
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
@@ -232,6 +235,22 @@ const activeCount = computed(
 const inactiveCount = computed(
   () => therapists.value.filter((therapist) => therapist.status === 'inactive').length,
 )
+
+const availableTherapistNames = computed(() => {
+  const usedNames = new Set(
+    therapists.value.map((therapist) => therapist.name.trim().toLowerCase()),
+  )
+  const namesByName = new Map<string, string>()
+
+  profiles.value.forEach((profile) => {
+    if ((profile.role ?? '').trim().toLowerCase() !== 'therapist') return
+    const name = profile.full_name.trim()
+    if (!name || usedNames.has(name.toLowerCase())) return
+    namesByName.set(name.toLowerCase(), name)
+  })
+
+  return [...namesByName.values()].sort((a, b) => a.localeCompare(b, 'th'))
+})
 
 const statuses = computed(() =>
   Array.from(
@@ -299,7 +318,12 @@ async function loadTherapists() {
   if (therapists.value.length === 0) loading.value = true
   error.value = ''
   try {
-    therapists.value = await listTherapists()
+    const [therapistRows, profileRows] = await Promise.all([
+      listTherapists(),
+      listProfiles(),
+    ])
+    therapists.value = therapistRows
+    profiles.value = profileRows
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด'
   } finally {

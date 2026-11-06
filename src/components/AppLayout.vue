@@ -41,16 +41,13 @@
         </nav>
 
         <div class="ml-auto flex items-center gap-2.5">
-          <div class="hidden text-right xl:block">
-            <p class="text-sm font-semibold text-cream-50">{{ auth.displayName }}</p>
+          <div class="text-right">
+            <p class="max-w-[140px] truncate text-sm font-semibold text-cream-50">
+              {{ auth.displayName }}
+            </p>
             <p class="font-mono text-[10px] uppercase tracking-wider text-cream-200/50">
               {{ auth.profile?.role || 'ผู้ดูแลระบบ' }}
             </p>
-          </div>
-          <div
-            class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white ring-2 ring-brand-400/30"
-          >
-            {{ initials }}
           </div>
           <button
             type="button"
@@ -220,14 +217,6 @@ const todayLabel = new Date().toLocaleDateString('th-TH', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
-})
-
-const initials = computed(() => {
-  const name = auth.displayName.trim()
-  if (!name) return 'AD'
-  const parts = name.split(/\s+/).filter(Boolean)
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase()
 })
 
 function isActive(name: string): boolean {

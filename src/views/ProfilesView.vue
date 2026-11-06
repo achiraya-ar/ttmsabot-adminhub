@@ -211,7 +211,6 @@
     <ProfileFormModal
       :open="modalOpen"
       :profile="editingProfile"
-      :roles="roles"
       :current-user-id="auth.profile?.id ?? ''"
       @close="modalOpen = false"
       @saved="handleSaved"

@@ -48,8 +48,10 @@
               </option>
             </select>
             <p class="field-hint">
-              Manager = จัดการคิวพนักงานทุกคน · Therapist / Staff = ดูเฉพาะข้อมูลของตัวเอง
-              โดยจับคู่จากชื่อ · สิทธิ์การเข้าถึงระบบกำหนดจาก checkbox ด้านล่าง
+              Therapist = ใช้ชื่อจับคู่กับตารางนัดหมายของตัวเอง ·
+              Manager = จัดการคิวพนักงานทุกคน ·
+              Staff = ผู้ใช้ทั่วไปที่ไม่ใช่นักบำบัด ·
+              สิทธิ์การเข้าถึงระบบกำหนดจาก checkbox ด้านล่าง
             </p>
           </div>
 
@@ -70,14 +72,13 @@
 
           <div>
             <label for="profile-fullname" class="label">
-              ชื่อ
-              <span v-if="form.role !== 'Staff'" class="text-rose-500">*</span>
+              ชื่อ <span class="text-rose-500">*</span>
             </label>
             <input
               id="profile-fullname"
               v-model="form.full_name"
               type="text"
-              :required="form.role !== 'Staff'"
+              required
               autocomplete="off"
               placeholder="เช่น สมชาย"
               class="input"
@@ -85,9 +86,9 @@
             />
             <p class="field-hint">
               {{
-                form.role === 'Staff'
-                  ? 'ไม่บังคับ แต่แนะนำให้กรอกเพื่อระบุตัวตน · ชื่อนี้จะไม่ถูกนำไปเป็นรายชื่อนักบำบัดในระบบจองคิว'
-                  : 'ใช้เป็นชื่อที่แสดงในระบบ และจับคู่กับชื่อนักบำบัด'
+                form.role === 'Therapist'
+                  ? 'ใช้เป็นชื่อที่แสดงในระบบ และจับคู่กับชื่อนักบำบัด'
+                  : 'ใช้ระบุตัวตนในระบบ แต่จะไม่ถูกใช้เป็นชื่อนักบำบัดในตารางนัดหมาย'
               }}
             </p>
           </div>
@@ -166,13 +167,26 @@
             <span class="min-w-0">
               <span class="flex items-center gap-2 text-sm font-medium text-ink-800">
                 <i :class="[permission.icon, permission.iconClasses]"></i>
-                {{ permission.label }}
+                {{
+                  permission.key === 'can_access_personalworkschedule' &&
+                  form.role === 'Manager'
+                    ? 'จัดการตารางงาน'
+                    : permission.label
+                }}
               </span>
               <span class="mt-1 block text-xs leading-5 text-ink-500">
-                {{ permission.description }}
+                {{
+                  permission.key === 'can_access_personalworkschedule' &&
+                  form.role === 'Manager'
+                    ? 'เข้า ttmsabot-personalworkschedule เพื่อจัดการคิวของพนักงานทุกคน'
+                    : permission.description
+                }}
               </span>
               <span
-                v-if="permission.key === 'can_access_personalworkschedule' && form.role === 'Staff'"
+                v-if="
+                  permission.key === 'can_access_personalworkschedule' &&
+                  form.role === 'Staff'
+                "
                 class="mt-1 block text-[11px] font-medium text-ink-400"
               >
                 ไม่ใช้สำหรับ Staff เพราะไม่ได้เป็นนักบำบัด
@@ -251,7 +265,6 @@ interface ProfileFormState {
 const props = defineProps<{
   open: boolean
   profile: AdminProfile | null
-  roles: string[]
   currentUserId: string
 }>()
 
@@ -279,17 +292,7 @@ const form = reactive<ProfileFormState>({
 
 const isSelf = computed(() => props.profile?.id === props.currentUserId)
 
-const roleOptions = computed(() => {
-  const preferred = ['Therapist', 'Manager', 'Staff']
-  const extras = props.roles.filter(
-    (role) => role && !preferred.includes(role),
-  )
-  const current = form.role.trim()
-  if (current && !preferred.includes(current) && !extras.includes(current)) {
-    extras.push(current)
-  }
-  return [...preferred, ...extras.sort((a, b) => a.localeCompare(b, 'th'))]
-})
+const roleOptions = ['Therapist', 'Manager', 'Staff'] as const
 
 function isPermissionDisabled(key: string): boolean {
   return (
@@ -380,8 +383,9 @@ watch(
 
 function validate(): string | null {
   if (!form.username.trim()) return 'กรุณากรอกชื่อผู้ใช้'
-  if (form.role !== 'Staff' && !form.full_name.trim()) {
-    return 'กรุณากรอกชื่อ'
+  if (!form.full_name.trim()) return 'กรุณากรอกชื่อ'
+  if (!roleOptions.includes(form.role as (typeof roleOptions)[number])) {
+    return 'กรุณาเลือกบทบาท Therapist, Manager หรือ Staff'
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
@@ -421,7 +425,7 @@ async function handleSubmit() {
   try {
     const payload = {
       username: form.username.trim(),
-      full_name: form.full_name.trim() || form.username.trim(),
+      full_name: form.full_name.trim(),
       email: form.email.trim().toLowerCase(),
       role: form.role.trim(),
       can_access_personalworkschedule:
