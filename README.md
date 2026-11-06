@@ -48,6 +48,7 @@ supabase/migrations/20261105000001_migrate_schedules_to_versions.sql
 supabase/migrations/20261105000002_add_therapists_management.sql
 supabase/migrations/20261106000000_add_delete_therapist_function.sql
 supabase/migrations/20261106000002_allow_staff_role.sql
+supabase/migrations/20261106000003_fix_schedule_versions_admin_policy.sql
 ```
 
 Migration เหล่านี้จะ:
@@ -227,6 +228,23 @@ supabase/
 ### `column profiles.can_access_adminhub does not exist`
 
 ยังไม่ได้รัน migration `20261027000001_add_adminhub_access.sql`
+
+### บันทึกตารางเวลาไม่สำเร็จ / code 42501
+
+ยังไม่ได้สร้าง policy สำหรับเขียน `schedule_versions` หรือผู้ใช้ไม่มี
+`profiles.can_access_adminhub = true` ให้รัน:
+
+```sql
+supabase/migrations/20261106000003_fix_schedule_versions_admin_policy.sql
+```
+
+แล้วตรวจสอบว่าบัญชีที่ใช้ล็อกอินมีสิทธิ์:
+
+```sql
+select username, can_access_adminhub
+from public.profiles
+where username = 'ชื่อผู้ใช้';
+```
 
 ### `ยังไม่ได้ deploy Edge Function "admin-users"`
 
